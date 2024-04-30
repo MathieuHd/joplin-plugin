@@ -1,3 +1,4 @@
+
 import { debounce } from './utils/debounce';
 
 let importedVariables: { [key: string]: string } = null;
@@ -33,6 +34,7 @@ export default function (context) {
           : [];
 
         if (importMatch == null) return defaultInlineCodeRender(tokens, idx, options, env, self);
+        imports.push("_LOCALVARIABLENOTE_");
 
         noteVariables = fetchLocalStoargeVariables();
         const importResult = mergeImports(imports);
@@ -73,16 +75,11 @@ export default function (context) {
  * @returns The Note Variables from local storage
  */
 function fetchLocalStoargeVariables() {
-  let noteVariables = '';
-  let localVariables = '';
+  const jsonStrong = localStorage.getItem('NoteVariables');
+  if (jsonStrong == null) return {};
+  const  noteVariables = JSON.parse(jsonStrong);
 
-  let jsonStrong = localStorage.getItem('NoteVariables');
-  if (jsonStrong != null) noteVariables = jsonStrong;
-
-  jsonStrong = localStorage.getItem('LocalVariables');
-  if (jsonStrong != null) localVariables = jsonStrong;
-
-  return JSON.parse(noteVariables.concat(localVariables));
+  return noteVariables;
 }
 
 /**
@@ -128,10 +125,10 @@ function replaceText(text: string, variables: { [key: string]: string }): string
 
   for (const key of varKeys) {
     delete variablesLeft[key];
-    const matchIndex = text.indexOf(key);
+    const matchIndex = text.indexOf('%'+key+'%');
     if (matchIndex === -1) continue;
 
-    const textSplit = text.split(key).map(splitText => {
+    const textSplit = text.split('%'+key+'%').map(splitText => {
       return replaceText(splitText, variablesLeft);
     });
 

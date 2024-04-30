@@ -1,6 +1,7 @@
+import joplin from 'api';
 import { fetchAllNotes } from './fetchAllNote';
 
 export const findVariablesNotes = async () => {
-  const notes = await fetchAllNotes();
-  return notes.filter(note => (note.title as string).match(/^\%[^%]*\%$/) != null);
+  const allNotes = await fetchAllNotes();
+  return allNotes.filter(note => (note.title as string).match(/^\%[^%]*\%$/) != null);
 };

@@ -21,6 +21,12 @@ export const loadVariablesNotes = async () => {
     };
   });
 
+  const localNote = await joplin.workspace.selectedNote();
+  const vars = parseNote(localNote);
+  variableGroups["_LOCALVARIABLENOTE_"] = {
+    vars,
+  };
+
   localStorage.setItem('NoteVariables', JSON.stringify(variableGroups));
   localStorage.setItem('UpdateNoteVariablesMDP', 'true');
 };
