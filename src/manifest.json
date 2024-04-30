@@ -1,0 +1,15 @@
+{
+	"manifest_version": 1,
+	"id": "com.mathieuhd.joplin",
+	"app_min_version": "2.13",
+	"version": "1.0.0",
+	"name": "Mathieu&#39;s plugin",
+	"description": "Custom Joplin plugin for everyday work",
+	"author": "MathieuHd",
+	"homepage_url": "https://github.com/MathieuHd/joplin-plugin",
+	"repository_url": "https://github.com/MathieuHd/joplin-plugin",
+	"keywords": [],
+	"categories": [],
+	"screenshots": [],
+	"icons": {}
+}
