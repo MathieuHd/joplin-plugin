@@ -7,6 +7,8 @@ export const loadVariablesNotes = async () => {
 
   const notesData = await Promise.all(
     notes.map(async note => {
+      console.info("New note found!");
+      console.info(JSON.stringify(note));
       return await joplin.data.get(['notes', note.id], { fields: ['title', 'body'] });
     })
   );
@@ -20,12 +22,6 @@ export const loadVariablesNotes = async () => {
       vars,
     };
   });
-
-  const localNote = await joplin.workspace.selectedNote();
-  const vars = parseNote(localNote);
-  variableGroups["_LOCALVARIABLENOTE_"] = {
-    vars,
-  };
 
   localStorage.setItem('NoteVariables', JSON.stringify(variableGroups));
   localStorage.setItem('UpdateNoteVariablesMDP', 'true');

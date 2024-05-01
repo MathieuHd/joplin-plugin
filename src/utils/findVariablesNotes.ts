@@ -3,5 +3,5 @@ import { fetchAllNotes } from './fetchAllNote';
 
 export const findVariablesNotes = async () => {
   const allNotes = await fetchAllNotes();
-  return allNotes.filter(note => (note.title as string).match(/^\%[^%]*\%$/) != null);
+  return allNotes; //.filter(note => (note.title as string).match(/^\%[^%]*\%$/) != null);
 };

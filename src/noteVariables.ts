@@ -10,8 +10,6 @@ export namespace noteVariables {
    */
   const onNoteChangeHandler = async (e: any) => {
     if (e.event !== 2) return;
-    const note = await joplin.data.get(['notes', e.id], { fields: ['title'] });
-    if (note.title.match(/^\%[^%]*\%$/) == null) return;
     loadVariablesNotes();
   };
 

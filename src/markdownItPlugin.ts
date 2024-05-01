@@ -7,6 +7,9 @@ let noteVariables: { [note: string]: { vars: { [key: string]: string } } } = {};
 export default function (context) {
   return {
     plugin: function (markdownIt, _options) {
+      /**
+       * Save default renderer rules
+       */
       const defaultRender =
         markdownIt.renderer.rules.text ||
         function (tokens, idx, options, env, self) {
@@ -19,36 +22,37 @@ export default function (context) {
           return self.renderToken(tokens, idx, options, env, self);
         };
 
+      const defaultFenceRender =
+        markdownIt.renderer.rules.fence ||
+        function (tokens, idx, options, env, self) {
+          return self.renderToken(tokens, idx, options, env, self);
+        };
+
       /**
        * Searchs for Note Variable imports
        */
       markdownIt.renderer.rules.code_inline = function (tokens, idx, options, env, self) {
         const token = tokens[idx];
 
-        const importMatch = (token.content as string)?.match(/^import((?:\s[^%\s]+)+)$/);
+        const importMatch = (token.content as string)?.match(/^import\s((?:[^;]+;?)+)$/);
         const imports = importMatch
           ? importMatch[1]
               .trimStart()
-              .split(' ')
-              .map(i => '%' + i + '%')
+              .split(';')
+              .map(i => i)
           : [];
 
         if (importMatch == null) return defaultInlineCodeRender(tokens, idx, options, env, self);
-        imports.push("_LOCALVARIABLENOTE_");
 
         noteVariables = fetchLocalStoargeVariables();
         const importResult = mergeImports(imports);
         importedVariables = importResult.merged;
 
-        const newText =
-          '<code class="inline-code">import' +
-          imports
-            .map(value => {
-              const successImport = importResult.validImports.includes(value);
-              return `<span style="color:${successImport ? 'lightgreen' : 'lightcoral'}" > ${value}</span>`;
-            })
-            .join('') +
-          '</code>';
+        const coloredImports = imports.map(value => {
+          const successImport = importResult.validImports.includes(value);
+          return `<span style="color:${successImport ? 'lightgreen' : 'lightcoral'}" > ${value}</span>`;
+          }).join('');
+        const newText = '<code class="inline-code">import' + coloredImports + '</code>';
 
         return newText;
       };
@@ -65,6 +69,21 @@ export default function (context) {
         const newText = replaceText(text, importedVariables);
         resetImportedVariables();
         return newText;
+      };
+
+      /**
+       * Replaces the imported variables into the fence
+       */
+      markdownIt.renderer.rules.fence = function (tokens, idx, options, env, self) {
+        if (importedVariables == null) return defaultFenceRender(tokens, idx, options, env, self);
+        const token = tokens[idx];
+        const text = <string>token.content;
+
+        // Replace the variables in the text
+        const newText = replaceText(text, importedVariables);
+        tokens[idx].content = newText;
+        resetImportedVariables();
+        return defaultFenceRender(tokens, idx, options, env, self);
       };
     },
   };
