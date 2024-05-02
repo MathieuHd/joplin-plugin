@@ -2,103 +2,72 @@
 import { debounce } from './utils/debounce';
 
 let importedVariables: { [key: string]: string } = null;
-let noteVariables: { [note: string]: { vars: { [key: string]: string } } } = {};
+//let noteVariables: { [note: string]: { vars: { [key: string]: string } } } = {};
 
-export default function (context) {
-  return {
-    plugin: function (markdownIt, _options) {
-      /**
-       * Save default renderer rules
-       */
-      const defaultRender =
-        markdownIt.renderer.rules.text ||
-        function (tokens, idx, options, env, self) {
-          return self.renderToken(tokens, idx, options, env, self);
-        };
+/**
+ * Plugin body
+ */
+export default function (context) { return { plugin: function (markdownIt, _options) {
 
-      const defaultInlineCodeRender =
-        markdownIt.renderer.rules.code_inline ||
-        function (tokens, idx, options, env, self) {
-          return self.renderToken(tokens, idx, options, env, self);
-        };
+    // Save the default render rules
+    const proxy = (tokens, idx, options, env, self) => self.renderToken(tokens, idx, options, env, self);
+    const defaultTextRender = markdownIt.renderer.rules.text || proxy;
+    const defaultInlineCodeRender = markdownIt.renderer.rules.code_inline || proxy;
+    const defaultFenceRender = markdownIt.renderer.rules.fence || proxy;
 
-      const defaultFenceRender =
-        markdownIt.renderer.rules.fence ||
-        function (tokens, idx, options, env, self) {
-          return self.renderToken(tokens, idx, options, env, self);
-        };
-
-      /**
-       * Searchs for Note Variable imports
-       */
-      markdownIt.renderer.rules.code_inline = function (tokens, idx, options, env, self) {
+    // Import variable notes
+    markdownIt.renderer.rules.code_inline = function (tokens, idx, options, env, self) {
         const token = tokens[idx];
 
+        // Matches `import xxx;y yy;`
         const importMatch = (token.content as string)?.match(/^import\s((?:[^;]+;?)+)$/);
-        const imports = importMatch
-          ? importMatch[1]
-              .trimStart()
-              .split(';')
-              .map(i => i)
-          : [];
 
+        // No explicit import
         if (importMatch == null) return defaultInlineCodeRender(tokens, idx, options, env, self);
 
-        noteVariables = fetchLocalStoargeVariables();
-        const importResult = mergeImports(imports);
+        // Load variables from imports
+        const imports = importMatch[1].trimStart().split(';');
+        const noteVariables = fetchLocalStorageVariables();
+        const importResult = mergeImports(noteVariables, imports);
         importedVariables = importResult.merged;
 
+        // Output
         const coloredImports = imports.map(value => {
-          const successImport = importResult.validImports.includes(value);
-          return `<span style="color:${successImport ? 'lightgreen' : 'lightcoral'}" > ${value}</span>`;
-          }).join('');
+            return `<span style="color:${importResult.validImports.includes(value) ? 'lightgreen' : 'lightcoral'}" > ${value}</span>`;
+        }).join(';');
         const newText = '<code class="inline-code">import' + coloredImports + '</code>';
 
         return newText;
-      };
+    };
 
-      /**
-       * Replaces the imported variables into the text
-       */
-      markdownIt.renderer.rules.text = function (tokens, idx, options, env, self) {
-        if (importedVariables == null) return defaultRender(tokens, idx, options, env, self);
-        const token = tokens[idx];
-        const text = <string>token.content;
+    // Replace variables in text
+    markdownIt.renderer.rules.text = function (tokens, idx, options, env, self) {
+        return replaceAndRender(defaultTextRender, tokens, idx, options, env, self);
+    };
 
-        // Replace the variables in the text
-        const newText = replaceText(text, importedVariables);
-        resetImportedVariables();
-        return newText;
-      };
+    // Replace variables in fence
+    markdownIt.renderer.rules.fence = function (tokens, idx, options, env, self) {
+        return replaceAndRender(defaultFenceRender, tokens, idx, options, env, self);
+    };
+}, }; }
 
-      /**
-       * Replaces the imported variables into the fence
-       */
-      markdownIt.renderer.rules.fence = function (tokens, idx, options, env, self) {
-        if (importedVariables == null) return defaultFenceRender(tokens, idx, options, env, self);
-        const token = tokens[idx];
-        const text = <string>token.content;
-
-        // Replace the variables in the text
-        const newText = replaceText(text, importedVariables);
-        tokens[idx].content = newText;
-        resetImportedVariables();
-        return defaultFenceRender(tokens, idx, options, env, self);
-      };
-    },
-  };
+/**
+ * Replace variables and render with default rule
+ * @returns Rendered tokens
+ */
+function replaceAndRender(defaultRender, tokens, idx, options, env, self){
+    tokens[idx].content = replaceText(<string>tokens[idx].content, importedVariables);
+    resetImportedVariables();
+    return defaultRender(tokens, idx, options, env, self);
 }
 
 /**
  * Fetch the note variables from local storage.
  * @returns The Note Variables from local storage
  */
-function fetchLocalStoargeVariables() {
-  const jsonStrong = localStorage.getItem('NoteVariables');
-  if (jsonStrong == null) return {};
-  const  noteVariables = JSON.parse(jsonStrong);
-
-  return noteVariables;
+function fetchLocalStorageVariables() {
+    const jsonStrong = localStorage.getItem('NoteVariables');
+    return jsonStrong == null ? {} : JSON.parse(jsonStrong);
 }
 
 /**
@@ -106,28 +75,23 @@ function fetchLocalStoargeVariables() {
  * @param imports
  * @returns The merged variables and the valid imports
  */
-function mergeImports(imports: string[]) {
-  let result = { merged: {}, validImports: [] };
+function mergeImports(noteVariables, imports: string[]) {
+    let result = { merged: {}, validImports: [] };
 
-  // The reverse is to give the first imports variables more priority
-  [...imports].reverse().forEach(importValue => {
-    if (noteVariables[importValue] == null) return;
-    result.validImports.push(importValue);
-    result.merged = {
-      ...result.merged,
-      ...noteVariables[importValue].vars,
-    };
-  });
+    // The reverse is to give the first imports variables more priority
+    [...imports].reverse().forEach(importValue => {
+        // Check if import is valid
+        if (noteVariables[importValue] == null) return;
 
-  return result;
+        // List import as valid
+        result.validImports.push(importValue);
+
+        // Push import variables into returned object
+        result.merged = {...result.merged, ...noteVariables[importValue].vars, };
+    });
+
+    return result;
 }
-
-/**
- * Resets the imported variables.
- */
-const resetImportedVariables = debounce(() => {
-  importedVariables = null;
-}, 500);
 
 /**
  * Replaces all the provided variables in a string
@@ -136,23 +100,32 @@ const resetImportedVariables = debounce(() => {
  * @returns The replaced text
  */
 function replaceText(text: string, variables: { [key: string]: string }): string {
-  if (text.length === 0) return '';
-  const varKeys = Object.keys(variables);
-  if (varKeys.length === 0) return text;
+    if (text.length === 0) return text;
+    if (variables == null) return text;
+    if (Object.keys(variables).length === 0) return text;
 
-  const variablesLeft = { ...variables };
+    const variablesLeft = { ...variables };
 
-  for (const key of varKeys) {
-    delete variablesLeft[key];
-    const matchIndex = text.indexOf('%'+key+'%');
-    if (matchIndex === -1) continue;
+    // For loop is made useless with the recursive call...
+    for (const key of Object.keys(variables)) {
+        delete variablesLeft[key];
 
-    const textSplit = text.split('%'+key+'%').map(splitText => {
-      return replaceText(splitText, variablesLeft);
-    });
+        // Looking for text to replace
+        const matchIndex = text.indexOf('%'+key+'%');
+        if (matchIndex === -1) continue;
 
-    return textSplit.join(variables[key]);
-  }
+        // Recursive call to avoid accidental replacements (I guess?)
+        const textSplit = text.split('%'+key+'%').map(splitText => {return replaceText(splitText, variablesLeft);});
 
-  return text;
+        // Return text with replacement
+        return textSplit.join(variables[key]);
+    }
+
+    // This line should not be reached
+    return text;
 }
+
+/**
+ * Resets the imported variables.
+ */
+const resetImportedVariables = debounce(() => {importedVariables = null;}, 500);
