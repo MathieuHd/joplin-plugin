@@ -1,4 +1,3 @@
-
 import { debounce } from './utils/debounce';
 
 let importedVariables: { [key: string]: string } = null;
@@ -25,17 +24,31 @@ export default function (context) { return { plugin: function (markdownIt, _opti
         // No explicit import
         if (importMatch == null) return defaultInlineCodeRender(tokens, idx, options, env, self);
 
-        // Load variables from imports
-        const imports = importMatch[1].trimStart().split(';');
-        const noteVariables = fetchLocalStorageVariables();
-        const importResult = mergeImports(noteVariables, imports);
+        // Load list of explicit imports
+        const explicitImports = importMatch[1].trimStart().split(';');
+        // Load list of implicit imports
+        const implicitImports = fetchLocalStorage('ImplicitNoteVariablesIDs');
+        const allImports = [...implicitImports].concat(explicitImports);
+        // Load variables data from local storage
+        const noteVariables = fetchLocalStorage('NoteVariables');
+        const importResult = mergeImports(noteVariables, allImports);
         importedVariables = importResult.merged;
 
+        // Debug
+        console.info('Explicit imports:');
+        console.info(explicitImports);
+        console.info('Implicit imports:');
+        console.info(implicitImports);
+        console.info('All imports:');
+        console.info(allImports);
+        console.info('Imported data:');
+        console.info(importedVariables);
+
         // Output
-        const coloredImports = imports.map(value => {
+        const coloredImports = allImports.map(value => {
             return `<span style="color:${importResult.validImports.includes(value) ? 'lightgreen' : 'lightcoral'}" > ${value}</span>`;
         }).join(';');
-        const newText = '<code class="inline-code">import' + coloredImports + '</code>';
+        const newText = '<details markdown="1" style="position:absolute;bottom:0;"><summary></summary><code class="inline-code">import' + coloredImports + '</code></details>';
 
         return newText;
     };
@@ -65,8 +78,8 @@ function replaceAndRender(defaultRender, tokens, idx, options, env, self){
  * Fetch the note variables from local storage.
  * @returns The Note Variables from local storage
  */
-function fetchLocalStorageVariables() {
-    const jsonStrong = localStorage.getItem('NoteVariables');
+function fetchLocalStorage(query: string) {
+    const jsonStrong = localStorage.getItem(query);
     return jsonStrong == null ? {} : JSON.parse(jsonStrong);
 }
 
