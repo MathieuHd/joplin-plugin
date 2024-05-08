@@ -34,28 +34,21 @@ export default function (context) { return { plugin: function (markdownIt, _opti
         const importResult = mergeImports(noteVariables, allImports);
         importedVariables = importResult.merged;
 
-        // Debug
-        console.info('Explicit imports:');
-        console.info(explicitImports);
-        console.info('Implicit imports:');
-        console.info(implicitImports);
-        console.info('All imports:');
-        console.info(allImports);
-        console.info('Imported data:');
-        console.info(importedVariables);
-
         // Output
         const coloredImports = allImports.map(value => {
             return `<span style="color:${importResult.validImports.includes(value) ? 'lightgreen' : 'lightcoral'}" > ${value}</span>`;
         }).join(';');
         const newText = '<details markdown="1" style="position:absolute;bottom:0;"><summary></summary><code class="inline-code">import' + coloredImports + '</code></details>';
 
-        return newText;
+        return "";
     };
 
     // Replace variables in text
     markdownIt.renderer.rules.text = function (tokens, idx, options, env, self) {
-        return replaceAndRender(defaultTextRender, tokens, idx, options, env, self);
+        const newText = replaceText(<string>tokens[idx].content, importedVariables);
+        resetImportedVariables();
+        return newText;
+        // return replaceAndRender(defaultTextRender, tokens, idx, options, env, self);
     };
 
     // Replace variables in fence
@@ -124,11 +117,11 @@ function replaceText(text: string, variables: { [key: string]: string }): string
         delete variablesLeft[key];
 
         // Looking for text to replace
-        const matchIndex = text.indexOf('%'+key+'%');
+        const matchIndex = text.indexOf(key);
         if (matchIndex === -1) continue;
 
         // Recursive call to avoid accidental replacements (I guess?)
-        const textSplit = text.split('%'+key+'%').map(splitText => {return replaceText(splitText, variablesLeft);});
+        const textSplit = text.split(key).map(splitText => {return replaceText(splitText, variablesLeft);});
 
         // Return text with replacement
         return textSplit.join(variables[key]);
