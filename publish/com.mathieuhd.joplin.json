@@ -11,5 +11,7 @@
 	"keywords": [],
 	"categories": [],
 	"screenshots": [],
-	"icons": {}
+	"icons": {},
+	"_publish_hash": "sha256:627460043af6108f06dd894a03536f409d3aa8eaf360c308dfe8a4e584fc4911",
+	"_publish_commit": "main:ca196daae1d2bbe3a7b39f19c2e87d6e015409a2"
 }
