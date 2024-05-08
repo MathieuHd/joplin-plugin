@@ -73,7 +73,7 @@ function replaceAndRender(defaultRender, tokens, idx, options, env, self){
  */
 function fetchLocalStorage(query: string) {
     const jsonStrong = localStorage.getItem(query);
-    return jsonStrong == null ? {} : JSON.parse(jsonStrong);
+    return jsonStrong == null ? [] : JSON.parse(jsonStrong);
 }
 
 /**

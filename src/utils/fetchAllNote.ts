@@ -8,8 +8,8 @@ export const fetchAllNotes = async () => {
     while (true) {
         const result = await joplin.data.get(['notes'], { page });
         items.push(...result.items);
-   	console.info('Fetched the following notes:');
-	console.info(JSON.stringify(result.items));
+   	console.debug('[FETC] Fetched the following notes:');
+	console.debug(JSON.stringify(result.items));
         if (!result.has_more) return items;
         page++;
     }

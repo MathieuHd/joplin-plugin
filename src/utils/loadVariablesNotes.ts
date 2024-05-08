@@ -18,14 +18,14 @@ export const loadVariablesNotes = async () => {
         })
     );
 
-    console.info('Begining parsing of notes:');
-    console.info(JSON.stringify(notesData));
+    console.debug('[LOAD] Begining parsing of notes:');
+    console.debug(JSON.stringify(notesData));
 
     // Parse into usable format
     const variableGroups: any = {};
     notesData.forEach(note => {
         if (variableGroups[note.title] != null) return;
-        console.info('Parsing note: "' + note.title + '"');
+        console.debug('[LOAD] Parsing note: "' + note.title + '"');
         const vars = parseNote(note);
         variableGroups[note.title] = {
             vars,
@@ -50,8 +50,8 @@ export const loadVariablesNotes = async () => {
     localStorage.setItem('UpdateNoteVariablesMDP', 'true');
 
     // Debug
-    console.info('Stored variable notes:');
+    console.info('[LOAD] Stored variable notes:');
     console.info(JSON.stringify(variableGroups));
-    console.info('Stored implicit IDs:');
+    console.info('[LOAD] Stored implicit IDs:');
     console.info(JSON.stringify(implicitIDs));
 };
