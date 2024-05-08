@@ -6,7 +6,7 @@ let importedVariables: { [key: string]: string } = null;
 /**
  * Plugin body
  */
-export default function (context) { return { plugin: function (markdownIt, _options) {
+export default (context: {contentScriptId: string, postMessage: any }) => { return { plugin: async (markdownIt, pluginOptions) => {
 
     // Save the default render rules
     const proxy = (tokens, idx, options, env, self) => self.renderToken(tokens, idx, options, env, self);
@@ -38,9 +38,9 @@ export default function (context) { return { plugin: function (markdownIt, _opti
         const coloredImports = allImports.map(value => {
             return `<span style="color:${importResult.validImports.includes(value) ? 'lightgreen' : 'lightcoral'}" > ${value}</span>`;
         }).join(';');
-        const newText = '<details markdown="1" style="position:absolute;bottom:0;"><summary></summary><code class="inline-code">import' + coloredImports + '</code></details>';
+        const newText = '<code class="inline-code">import' + coloredImports + '</code>';
 
-        return "";
+        return pluginOptions.settingValue('show-colored-imports') ? newText : "";
     };
 
     // Replace variables in text
