@@ -28,7 +28,7 @@ export default (context: {contentScriptId: string, postMessage: any }) => { retu
         const explicitImports = importMatch[1].trimStart().split(';');
         // Load list of implicit imports
         const implicitImports = fetchLocalStorage('ImplicitNoteVariablesIDs');
-        const allImports = [...implicitImports].concat(explicitImports);
+        const allImports = [...explicitImports].concat(implicitImports);
         // Load variables data from local storage
         const noteVariables = fetchLocalStorage('NoteVariables');
         const importResult = mergeImports(noteVariables, allImports);
